@@ -14,6 +14,7 @@ from .models import BatchManifest
 from .storage import storage_service
 from .utils import ensure_within, relative_storage_path
 from .worker import worker_manager
+from .conversion import conversion_service
 
 
 @asynccontextmanager
@@ -112,6 +113,12 @@ async def download_zip(batch_id: str) -> FileResponse:
                 continue
             output = ensure_within(batch_dir, batch_dir / record.output_path)
             archive.write(output, arcname=relative_storage_path(batch_dir / "outputs", output))
+            asset_dir = conversion_service.asset_dir(output)
+            if asset_dir.exists():
+                for asset in asset_dir.rglob("*"):
+                    if asset.is_file():
+                        safe_asset = ensure_within(batch_dir / "outputs", asset)
+                        archive.write(safe_asset, arcname=relative_storage_path(batch_dir / "outputs", safe_asset))
     return FileResponse(zip_path, media_type="application/zip", filename="converted-files.zip")
 
 
@@ -131,4 +138,3 @@ async def cancel_batch(batch_id: str) -> BatchManifest:
 async def delete_batch(batch_id: str) -> dict[str, str]:
     storage_service.delete_batch(batch_id)
     return {"status": "deleted"}
-

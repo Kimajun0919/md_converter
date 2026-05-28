@@ -67,6 +67,12 @@ class WorkerManager:
                 conversion_service.convert(record, input_path),
                 timeout=settings.file_conversion_timeout_seconds,
             )
+            asset_markdown, asset_warning = conversion_service.extract_embedded_assets(record, input_path, output_path)
+            if asset_markdown:
+                result.markdown = f"{result.markdown.rstrip()}\n{asset_markdown}"
+            if asset_warning:
+                result.partial = True
+                result.warning = f"{result.warning} {asset_warning}" if result.warning else asset_warning
             output_path.parent.mkdir(parents=True, exist_ok=True)
             output_path.write_text(conversion_service.with_frontmatter(record, result), encoding="utf-8")
 
@@ -136,4 +142,3 @@ class WorkerManager:
 
 
 worker_manager = WorkerManager()
-

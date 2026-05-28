@@ -2,8 +2,10 @@ import asyncio
 import csv
 import html
 import json
+import os
 import re
 import subprocess
+import zipfile
 from pathlib import Path
 
 from .config import settings
@@ -45,6 +47,14 @@ class ConversionService:
         if result:
             return result
 
+        if ext in {".pdf", ".pptx"}:
+            return ConversionResult(
+                "_No textual content was extracted by the configured text converters._",
+                "asset-extraction",
+                partial=True,
+                warning="Text extraction was unavailable; embedded images were preserved when possible.",
+            )
+
         if settings.enable_pandoc_fallback and ext in {".docx", ".html", ".htm"}:
             result = await self._pandoc(input_path)
             if result:
@@ -54,6 +64,16 @@ class ConversionService:
 
     def output_path(self, batch_dir: Path, record: FileRecord) -> Path:
         return batch_dir / "outputs" / output_relative_path(record.relative_path)
+
+    def asset_dir(self, output_path: Path) -> Path:
+        return output_path.with_name(f"{output_path.stem}_assets")
+
+    def extract_embedded_assets(self, record: FileRecord, input_path: Path, output_path: Path) -> tuple[str, str | None]:
+        if record.extension == ".pptx":
+            return self._extract_pptx_assets(input_path, output_path)
+        if record.extension == ".pdf":
+            return self._extract_pdf_assets(input_path, output_path)
+        return "", None
 
     def with_frontmatter(self, record: FileRecord, result: ConversionResult) -> str:
         warning = ""
@@ -152,6 +172,78 @@ class ConversionService:
         value = re.sub(r"\n{4,}", "\n\n\n", value)
         return value.strip() or "_No textual content was extracted._"
 
+    def _extract_pptx_assets(self, input_path: Path, output_path: Path) -> tuple[str, str | None]:
+        asset_dir = self.asset_dir(output_path)
+        links: list[str] = []
+        try:
+            with zipfile.ZipFile(input_path) as archive:
+                media_files = [
+                    info
+                    for info in archive.infolist()
+                    if not info.is_dir() and info.filename.startswith("ppt/media/")
+                ]
+                for index, info in enumerate(media_files, start=1):
+                    source_name = Path(info.filename).name
+                    extension = Path(source_name).suffix.lower() or ".bin"
+                    if extension not in IMAGE_EXTENSIONS:
+                        continue
+                    asset_dir.mkdir(parents=True, exist_ok=True)
+                    target = asset_dir / f"ppt-image-{index:03d}{extension}"
+                    with archive.open(info) as source, target.open("wb") as dest:
+                        dest.write(source.read())
+                    links.append(self._markdown_image_link(output_path, target, f"PPT image {index}"))
+        except zipfile.BadZipFile:
+            return "", "Embedded images could not be extracted because the PPTX archive is invalid."
+        except Exception:
+            return "", "Embedded images could not be extracted from this PPTX."
+
+        if not links:
+            return "", None
+        return "\n\n## Extracted Images\n\n" + "\n\n".join(links), None
+
+    def _extract_pdf_assets(self, input_path: Path, output_path: Path) -> tuple[str, str | None]:
+        try:
+            import fitz
+        except Exception:
+            return "", "PDF image extraction requires PyMuPDF, but it is not available."
+
+        asset_dir = self.asset_dir(output_path)
+        links: list[str] = []
+        seen_xrefs: set[int] = set()
+        try:
+            document = fitz.open(input_path)
+            for page_index in range(document.page_count):
+                page = document.load_page(page_index)
+                for image_index, image in enumerate(page.get_images(full=True), start=1):
+                    xref = image[0]
+                    if xref in seen_xrefs:
+                        continue
+                    seen_xrefs.add(xref)
+                    extracted = document.extract_image(xref)
+                    image_bytes = extracted.get("image")
+                    extension = f".{extracted.get('ext', 'png').lower()}"
+                    if not image_bytes:
+                        continue
+                    asset_dir.mkdir(parents=True, exist_ok=True)
+                    target = asset_dir / f"page-{page_index + 1:03d}-image-{image_index:03d}{extension}"
+                    target.write_bytes(image_bytes)
+                    links.append(
+                        self._markdown_image_link(
+                            output_path,
+                            target,
+                            f"PDF page {page_index + 1} image {image_index}",
+                        )
+                    )
+        except Exception:
+            return "", "Embedded images could not be extracted from this PDF."
+
+        if not links:
+            return "", None
+        return "\n\n## Extracted Images\n\n" + "\n\n".join(links), None
+
+    def _markdown_image_link(self, output_path: Path, asset_path: Path, alt: str) -> str:
+        relative = os.path.relpath(asset_path, output_path.parent).replace("\\", "/")
+        return f"![{alt}]({relative})"
+
 
 conversion_service = ConversionService()
-

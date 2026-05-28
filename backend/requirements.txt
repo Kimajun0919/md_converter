@@ -4,4 +4,4 @@ python-multipart==0.0.20
 pydantic-settings==2.7.1
 aiofiles==24.1.0
 markitdown==0.0.1a3
-
+PyMuPDF==1.26.6

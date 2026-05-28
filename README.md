@@ -19,6 +19,8 @@ PDF, DOCX, PPTX, XLSX, CSV, JSON, XML, HTML, TXT, MD, ZIP, PNG, JPG, JPEG, and W
 
 Images require OCR. OCR is disabled by default, so image files return a clear failure unless `ENABLE_OCR=true` and an OCR converter is added.
 
+For PDF and PPTX inputs, embedded images are extracted when possible and written next to the Markdown file in a sibling `_assets` folder. The Markdown output references those files with standard image links. This preserves images as source assets, but text inside images still requires OCR.
+
 ## Local Development
 
 Copy the example environment file:
@@ -111,4 +113,3 @@ See `.env.example` for all settings:
 4. Download a single completed Markdown file.
 5. Download the ZIP and confirm it includes only successful `.md` outputs with folders preserved.
 6. Inspect `storage/batches/{batch_id}/manifest.json`.
-
