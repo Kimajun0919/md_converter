@@ -39,6 +39,8 @@ const copy = {
     selectFolder: "폴더 선택",
     settingsTitle: "변환 설정",
     settingsBody: "옵션은 배치별로 저장되며 업로드와 변환 중 백엔드에서 사용됩니다.",
+    openSettings: "변환 설정",
+    closeSettings: "닫기",
     settingsSaved: "현재 배치에 저장됨",
     settingsPending: "배치 생성 시 적용됨",
     enableOcr: "OCR 활성화",
@@ -92,6 +94,8 @@ const copy = {
     selectFolder: "Select folder",
     settingsTitle: "Conversion settings",
     settingsBody: "These options are saved per batch and used by the backend during upload and conversion.",
+    openSettings: "Conversion settings",
+    closeSettings: "Close",
     settingsSaved: "Saved to current batch",
     settingsPending: "Applied when a batch is created",
     enableOcr: "Enable OCR",
@@ -197,6 +201,7 @@ export default function App() {
   const [message, setMessage] = useState<string | null>(null);
   const [options, setOptions] = useState<ConversionOptions>(defaultOptions);
   const [language, setLanguage] = useState<Language>("ko");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
   const t = copy[language];
 
@@ -330,6 +335,9 @@ export default function App() {
               <option value="en">English</option>
             </select>
           </label>
+          <button type="button" onClick={() => setIsSettingsOpen(true)}>
+            {t.openSettings}
+          </button>
           <div className="batch-pill">{batch ? batch.batch_id : t.noBatch}</div>
         </div>
       </section>
@@ -366,90 +374,12 @@ export default function App() {
         </div>
       </section>
 
-      <section className="settings-panel">
-        <div className="settings-header">
-          <div>
-            <h2>{t.settingsTitle}</h2>
-            <p>{t.settingsBody}</p>
-          </div>
-          <span className="settings-state">{batch ? t.settingsSaved : t.settingsPending}</span>
-        </div>
-        <div className="settings-grid">
-          <label className="toggle-row">
-            <input
-              type="checkbox"
-              checked={options.enable_ocr}
-              onChange={(event) => changeOptions({ ...options, enable_ocr: event.target.checked })}
-            />
-            <span>
-              {t.enableOcr}
-              <small>{t.enableOcrHelp}</small>
-            </span>
-          </label>
-          <label className="field-row">
-            <span>{t.ocrLanguages}</span>
-            <select
-              value={options.ocr_languages}
-              onChange={(event) => changeOptions({ ...options, ocr_languages: event.target.value })}
-            >
-              {ocrLanguageOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {language === "ko" ? option.ko : option.en}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="toggle-row">
-            <input
-              type="checkbox"
-              checked={options.enable_zip_extraction}
-              disabled={!!batch && batch.files.length > 0}
-              onChange={(event) => changeOptions({ ...options, enable_zip_extraction: event.target.checked })}
-            />
-            <span>
-              {t.extractZip}
-              <small>{t.extractZipHelp}</small>
-            </span>
-          </label>
-          <label className="toggle-row">
-            <input
-              type="checkbox"
-              checked={options.enable_pandoc_fallback}
-              onChange={(event) => changeOptions({ ...options, enable_pandoc_fallback: event.target.checked })}
-            />
-            <span>
-              {t.pandoc}
-              <small>{t.pandocHelp}</small>
-            </span>
-          </label>
-          <label className="toggle-row">
-            <input
-              type="checkbox"
-              checked={options.enable_tika_fallback}
-              onChange={(event) => changeOptions({ ...options, enable_tika_fallback: event.target.checked })}
-            />
-            <span>
-              {t.tika}
-              <small>{t.tikaHelp}</small>
-            </span>
-          </label>
-          <label className="toggle-row">
-            <input
-              type="checkbox"
-              checked={options.enable_libreoffice_fallback}
-              onChange={(event) => changeOptions({ ...options, enable_libreoffice_fallback: event.target.checked })}
-            />
-            <span>
-              {t.libreoffice}
-              <small>{t.libreofficeHelp}</small>
-            </span>
-          </label>
-        </div>
-      </section>
-
       <section className="controls">
         <button disabled={!canConvert || isUploading} onClick={() => runAction(() => startConversion(batch!.batch_id))}>
           {t.start}
+        </button>
+        <button type="button" onClick={() => setIsSettingsOpen(true)}>
+          {t.openSettings}
         </button>
         <button disabled={!batch} onClick={() => runAction(() => cancelBatch(batch!.batch_id))}>
           {t.cancel}
@@ -507,6 +437,102 @@ export default function App() {
           </tbody>
         </table>
       </section>
+
+      {isSettingsOpen && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => setIsSettingsOpen(false)}>
+          <section
+            className="settings-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="settings-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="settings-header">
+              <div>
+                <h2 id="settings-title">{t.settingsTitle}</h2>
+                <p>{t.settingsBody}</p>
+              </div>
+              <div className="settings-actions">
+                <span className="settings-state">{batch ? t.settingsSaved : t.settingsPending}</span>
+                <button type="button" onClick={() => setIsSettingsOpen(false)}>
+                  {t.closeSettings}
+                </button>
+              </div>
+            </div>
+            <div className="settings-grid">
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={options.enable_ocr}
+                  onChange={(event) => changeOptions({ ...options, enable_ocr: event.target.checked })}
+                />
+                <span>
+                  {t.enableOcr}
+                  <small>{t.enableOcrHelp}</small>
+                </span>
+              </label>
+              <label className="field-row">
+                <span>{t.ocrLanguages}</span>
+                <select
+                  value={options.ocr_languages}
+                  onChange={(event) => changeOptions({ ...options, ocr_languages: event.target.value })}
+                >
+                  {ocrLanguageOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {language === "ko" ? option.ko : option.en}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={options.enable_zip_extraction}
+                  disabled={!!batch && batch.files.length > 0}
+                  onChange={(event) => changeOptions({ ...options, enable_zip_extraction: event.target.checked })}
+                />
+                <span>
+                  {t.extractZip}
+                  <small>{t.extractZipHelp}</small>
+                </span>
+              </label>
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={options.enable_pandoc_fallback}
+                  onChange={(event) => changeOptions({ ...options, enable_pandoc_fallback: event.target.checked })}
+                />
+                <span>
+                  {t.pandoc}
+                  <small>{t.pandocHelp}</small>
+                </span>
+              </label>
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={options.enable_tika_fallback}
+                  onChange={(event) => changeOptions({ ...options, enable_tika_fallback: event.target.checked })}
+                />
+                <span>
+                  {t.tika}
+                  <small>{t.tikaHelp}</small>
+                </span>
+              </label>
+              <label className="toggle-row">
+                <input
+                  type="checkbox"
+                  checked={options.enable_libreoffice_fallback}
+                  onChange={(event) => changeOptions({ ...options, enable_libreoffice_fallback: event.target.checked })}
+                />
+                <span>
+                  {t.libreoffice}
+                  <small>{t.libreofficeHelp}</small>
+                </span>
+              </label>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

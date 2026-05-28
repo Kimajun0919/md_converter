@@ -158,14 +158,6 @@ p {
   margin-bottom: 1rem;
 }
 
-.settings-panel {
-  background: #ffffff;
-  border: 1px solid #d8e0e8;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  padding: 1rem;
-}
-
 .settings-header {
   align-items: flex-start;
   display: flex;
@@ -184,10 +176,41 @@ p {
   white-space: nowrap;
 }
 
+.settings-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: flex-end;
+}
+
 .settings-grid {
   display: grid;
   gap: 0.75rem;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.modal-backdrop {
+  align-items: center;
+  background: rgb(15 23 42 / 0.42);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 20;
+}
+
+.settings-modal {
+  background: #ffffff;
+  border: 1px solid #d8e0e8;
+  border-radius: 8px;
+  box-shadow: 0 20px 50px rgb(15 23 42 / 0.18);
+  max-height: calc(100vh - 2rem);
+  max-width: 980px;
+  overflow: auto;
+  padding: 1rem;
+  width: 100%;
 }
 
 .toggle-row,
@@ -400,6 +423,11 @@ th {
 
   .settings-header {
     flex-direction: column;
+  }
+
+  .settings-actions {
+    align-items: flex-start;
+    justify-content: flex-start;
   }
 
   .settings-grid {
