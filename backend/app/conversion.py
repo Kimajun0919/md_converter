@@ -197,7 +197,7 @@ class ConversionService:
     ) -> tuple[str, str | None]:
         asset_dir = self.asset_dir(output_path)
         links: list[str] = []
-        ocr_warnings: list[str] = []
+        ocr_warnings: set[str] = set()
         try:
             with zipfile.ZipFile(input_path) as archive:
                 media_files = [
@@ -222,7 +222,7 @@ class ConversionService:
 
         if not links:
             return "", None
-        return "\n\n## Extracted Images\n\n" + "\n\n".join(links), " ".join(ocr_warnings) or None
+        return "\n\n## Extracted Images\n\n" + "\n\n".join(links), self._join_warnings(ocr_warnings)
 
     def _extract_pdf_assets(
         self,
@@ -237,7 +237,7 @@ class ConversionService:
 
         asset_dir = self.asset_dir(output_path)
         links: list[str] = []
-        ocr_warnings: list[str] = []
+        ocr_warnings: set[str] = set()
         seen_xrefs: set[int] = set()
         try:
             document = fitz.open(input_path)
@@ -270,7 +270,7 @@ class ConversionService:
 
         if not links:
             return "", None
-        return "\n\n## Extracted Images\n\n" + "\n\n".join(links), " ".join(ocr_warnings) or None
+        return "\n\n## Extracted Images\n\n" + "\n\n".join(links), self._join_warnings(ocr_warnings)
 
     def _markdown_image_link(self, output_path: Path, asset_path: Path, alt: str) -> str:
         relative = os.path.relpath(asset_path, output_path.parent).replace("\\", "/")
@@ -300,7 +300,7 @@ class ConversionService:
         output_path: Path,
         asset_path: Path,
         alt: str,
-        warnings: list[str],
+        warnings: set[str],
         options: ConversionOptions,
     ) -> str:
         link = self._markdown_image_link(output_path, asset_path, alt)
@@ -310,8 +310,12 @@ class ConversionService:
         try:
             text = self._ocr_image(asset_path, options)
         except ValueError as exc:
-            warnings.append(str(exc))
-            return f"{link}\n\n> OCR warning: {exc}"
+            warning = str(exc)
+            already_seen = warning in warnings
+            warnings.add(warning)
+            if already_seen:
+                return link
+            return f"{link}\n\n> OCR warning: {warning}"
 
         if not text:
             return f"{link}\n\n_OCR did not detect readable text in this image._"
@@ -338,6 +342,11 @@ class ConversionService:
             raise ValueError("OCR failed for this image.") from exc
 
         return self._normalize_markdown(text)
+
+    def _join_warnings(self, warnings: set[str]) -> str | None:
+        if not warnings:
+            return None
+        return " ".join(sorted(warnings))
 
 
 conversion_service = ConversionService()
