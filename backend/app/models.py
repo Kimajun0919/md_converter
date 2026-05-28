@@ -51,7 +51,7 @@ class FileRecord(BaseModel):
 
 class ConversionOptions(BaseModel):
     enable_ocr: bool = False
-    ocr_languages: str = "eng"
+    ocr_languages: str = "eng+kor"
     enable_pandoc_fallback: bool = False
     enable_tika_fallback: bool = False
     enable_libreoffice_fallback: bool = False

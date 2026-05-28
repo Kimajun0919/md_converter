@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     enable_tika_fallback: bool = False
     enable_libreoffice_fallback: bool = False
     enable_zip_extraction: bool = True
-    ocr_languages: str = "eng"
+    ocr_languages: str = "eng+kor"
     tesseract_cmd: str | None = None
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 

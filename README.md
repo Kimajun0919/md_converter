@@ -1,5 +1,7 @@
 # Bulk Markdown Converter
 
+Korean README: [README.ko.md](README.ko.md)
+
 A no-database web app for uploading many files and converting supported inputs into clean Markdown for RAG and document indexing preprocessing.
 
 ## Architecture
@@ -25,14 +27,14 @@ For local OCR on Windows, install Tesseract and set these values in `.env`:
 
 ```env
 ENABLE_OCR=true
-OCR_LANGUAGES=eng
+OCR_LANGUAGES=eng+kor
 TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
 ```
 
-For Korean OCR, install the Korean trained data and use:
+For English-only OCR, use:
 
 ```env
-OCR_LANGUAGES=eng+kor
+OCR_LANGUAGES=eng
 ```
 
 The Docker image installs English and Korean Tesseract language packs.
