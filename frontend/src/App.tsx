@@ -16,11 +16,11 @@ import type { BatchManifest, ConversionOptions, FileRecord, FileStatus, LocalUpl
 const terminalStatuses = new Set(["completed", "completed_with_errors", "failed", "cancelled"]);
 
 const defaultOptions: ConversionOptions = {
-  enable_ocr: false,
+  enable_ocr: true,
   ocr_languages: "eng+kor",
-  enable_pandoc_fallback: false,
-  enable_tika_fallback: false,
-  enable_libreoffice_fallback: false,
+  enable_pandoc_fallback: true,
+  enable_tika_fallback: true,
+  enable_libreoffice_fallback: true,
   enable_zip_extraction: true
 };
 
@@ -40,6 +40,7 @@ const copy = {
     settingsTitle: "변환 설정",
     settingsBody: "옵션은 배치별로 저장되며 업로드와 변환 중 백엔드에서 사용됩니다.",
     openSettings: "변환 설정",
+    saveSettings: "저장",
     closeSettings: "닫기",
     settingsSaved: "현재 배치에 저장됨",
     settingsPending: "배치 생성 시 적용됨",
@@ -95,6 +96,7 @@ const copy = {
     settingsTitle: "Conversion settings",
     settingsBody: "These options are saved per batch and used by the backend during upload and conversion.",
     openSettings: "Conversion settings",
+    saveSettings: "Save",
     closeSettings: "Close",
     settingsSaved: "Saved to current batch",
     settingsPending: "Applied when a batch is created",
@@ -200,6 +202,7 @@ export default function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [options, setOptions] = useState<ConversionOptions>(defaultOptions);
+  const [draftOptions, setDraftOptions] = useState<ConversionOptions>(defaultOptions);
   const [language, setLanguage] = useState<Language>("ko");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
@@ -236,16 +239,28 @@ export default function App() {
     const created = await createBatch(options);
     setBatch(created);
     setOptions(created.options);
+    setDraftOptions(created.options);
     return created;
   }
 
-  async function changeOptions(next: ConversionOptions) {
+  function openSettings() {
+    setDraftOptions(options);
+    setIsSettingsOpen(true);
+  }
+
+  async function saveOptions() {
+    const next = draftOptions;
     setOptions(next);
-    if (!batch) return;
+    if (!batch) {
+      setIsSettingsOpen(false);
+      return;
+    }
     try {
       const updated = await updateBatchOptions(batch.batch_id, next);
       setBatch(updated);
       setOptions(updated.options);
+      setDraftOptions(updated.options);
+      setIsSettingsOpen(false);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : t.optionsError);
     }
@@ -314,6 +329,8 @@ export default function App() {
     setBatch(null);
     setLocalUploads([]);
     setMessage(null);
+    setOptions(defaultOptions);
+    setDraftOptions(defaultOptions);
   }
 
   const canConvert = !!batch && batch.files.some((file) => ["uploaded", "failed"].includes(file.status));
@@ -335,7 +352,7 @@ export default function App() {
               <option value="en">English</option>
             </select>
           </label>
-          <button type="button" onClick={() => setIsSettingsOpen(true)}>
+          <button type="button" onClick={openSettings}>
             {t.openSettings}
           </button>
           <div className="batch-pill">{batch ? batch.batch_id : t.noBatch}</div>
@@ -451,6 +468,9 @@ export default function App() {
               </div>
               <div className="settings-actions">
                 <span className="settings-state">{batch ? t.settingsSaved : t.settingsPending}</span>
+                <button type="button" className="button primary" onClick={saveOptions}>
+                  {t.saveSettings}
+                </button>
                 <button type="button" onClick={() => setIsSettingsOpen(false)}>
                   {t.closeSettings}
                 </button>
@@ -460,8 +480,8 @@ export default function App() {
               <label className="toggle-row">
                 <input
                   type="checkbox"
-                  checked={options.enable_ocr}
-                  onChange={(event) => changeOptions({ ...options, enable_ocr: event.target.checked })}
+                  checked={draftOptions.enable_ocr}
+                  onChange={(event) => setDraftOptions({ ...draftOptions, enable_ocr: event.target.checked })}
                 />
                 <span>
                   {t.enableOcr}
@@ -471,8 +491,8 @@ export default function App() {
               <label className="field-row">
                 <span>{t.ocrLanguages}</span>
                 <select
-                  value={options.ocr_languages}
-                  onChange={(event) => changeOptions({ ...options, ocr_languages: event.target.value })}
+                  value={draftOptions.ocr_languages}
+                  onChange={(event) => setDraftOptions({ ...draftOptions, ocr_languages: event.target.value })}
                 >
                   {ocrLanguageOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -484,9 +504,9 @@ export default function App() {
               <label className="toggle-row">
                 <input
                   type="checkbox"
-                  checked={options.enable_zip_extraction}
+                  checked={draftOptions.enable_zip_extraction}
                   disabled={!!batch && batch.files.length > 0}
-                  onChange={(event) => changeOptions({ ...options, enable_zip_extraction: event.target.checked })}
+                  onChange={(event) => setDraftOptions({ ...draftOptions, enable_zip_extraction: event.target.checked })}
                 />
                 <span>
                   {t.extractZip}
@@ -496,8 +516,8 @@ export default function App() {
               <label className="toggle-row">
                 <input
                   type="checkbox"
-                  checked={options.enable_pandoc_fallback}
-                  onChange={(event) => changeOptions({ ...options, enable_pandoc_fallback: event.target.checked })}
+                  checked={draftOptions.enable_pandoc_fallback}
+                  onChange={(event) => setDraftOptions({ ...draftOptions, enable_pandoc_fallback: event.target.checked })}
                 />
                 <span>
                   {t.pandoc}
@@ -507,8 +527,8 @@ export default function App() {
               <label className="toggle-row">
                 <input
                   type="checkbox"
-                  checked={options.enable_tika_fallback}
-                  onChange={(event) => changeOptions({ ...options, enable_tika_fallback: event.target.checked })}
+                  checked={draftOptions.enable_tika_fallback}
+                  onChange={(event) => setDraftOptions({ ...draftOptions, enable_tika_fallback: event.target.checked })}
                 />
                 <span>
                   {t.tika}
@@ -518,8 +538,8 @@ export default function App() {
               <label className="toggle-row">
                 <input
                   type="checkbox"
-                  checked={options.enable_libreoffice_fallback}
-                  onChange={(event) => changeOptions({ ...options, enable_libreoffice_fallback: event.target.checked })}
+                  checked={draftOptions.enable_libreoffice_fallback}
+                  onChange={(event) => setDraftOptions({ ...draftOptions, enable_libreoffice_fallback: event.target.checked })}
                 />
                 <span>
                   {t.libreoffice}

@@ -9,10 +9,10 @@ class Settings(BaseSettings):
     max_batch_size_mb: int = 10240
     file_conversion_timeout_seconds: int = 300
     temp_file_ttl_hours: int = 24
-    enable_ocr: bool = False
-    enable_pandoc_fallback: bool = False
-    enable_tika_fallback: bool = False
-    enable_libreoffice_fallback: bool = False
+    enable_ocr: bool = True
+    enable_pandoc_fallback: bool = True
+    enable_tika_fallback: bool = True
+    enable_libreoffice_fallback: bool = True
     enable_zip_extraction: bool = True
     ocr_languages: str = "eng+kor"
     tesseract_cmd: str | None = None
