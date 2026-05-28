@@ -378,9 +378,6 @@ export default function App() {
         <button disabled={!canConvert || isUploading} onClick={() => runAction(() => startConversion(batch!.batch_id))}>
           {t.start}
         </button>
-        <button type="button" onClick={() => setIsSettingsOpen(true)}>
-          {t.openSettings}
-        </button>
         <button disabled={!batch} onClick={() => runAction(() => cancelBatch(batch!.batch_id))}>
           {t.cancel}
         </button>
