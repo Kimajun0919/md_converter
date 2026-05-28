@@ -17,9 +17,25 @@ The app is designed for large files through disk-backed uploads, background conv
 
 PDF, DOCX, PPTX, XLSX, CSV, JSON, XML, HTML, TXT, MD, ZIP, PNG, JPG, JPEG, and WEBP.
 
-Images require OCR. OCR is disabled by default, so image files return a clear failure unless `ENABLE_OCR=true` and an OCR converter is added.
+Images require OCR. OCR is disabled by default, so image files return a clear failure unless `ENABLE_OCR=true` and Tesseract is installed/configured.
 
-For PDF and PPTX inputs, embedded images are extracted when possible and written next to the Markdown file in a sibling `_assets` folder. The Markdown output references those files with standard image links. This preserves images as source assets, but text inside images still requires OCR.
+For PDF and PPTX inputs, embedded images are extracted when possible and written next to the Markdown file in a sibling `_assets` folder. The Markdown output references those files with standard image links. When `ENABLE_OCR=true`, OCR text is added below each extracted image.
+
+For local OCR on Windows, install Tesseract and set these values in `.env`:
+
+```env
+ENABLE_OCR=true
+OCR_LANGUAGES=eng
+TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
+```
+
+For Korean OCR, install the Korean trained data and use:
+
+```env
+OCR_LANGUAGES=eng+kor
+```
+
+The Docker image installs English and Korean Tesseract language packs.
 
 ## Local Development
 
@@ -39,6 +55,8 @@ Open:
 
 - Frontend: http://localhost:5173
 - Backend API docs: http://localhost:8000/docs
+
+The web UI includes per-batch conversion settings for OCR, OCR language codes, ZIP extraction, and optional fallback converter flags. Settings are stored in the batch `manifest.json`; ZIP extraction must be configured before uploading ZIP files.
 
 To run without Docker:
 
@@ -88,6 +106,7 @@ Temporary files are deleted by a cleanup task after `TEMP_FILE_TTL_HOURS`, or im
 - `POST /api/batches/{batch_id}/retry-failed`
 - `POST /api/batches/{batch_id}/cancel`
 - `DELETE /api/batches/{batch_id}`
+- `PATCH /api/batches/{batch_id}/options`
 
 ## Environment Variables
 
@@ -103,6 +122,8 @@ See `.env.example` for all settings:
 - `ENABLE_TIKA_FALLBACK`
 - `ENABLE_LIBREOFFICE_FALLBACK`
 - `ENABLE_ZIP_EXTRACTION`
+- `OCR_LANGUAGES`
+- `TESSERACT_CMD`
 - `CORS_ORIGINS`
 
 ## Smoke Test

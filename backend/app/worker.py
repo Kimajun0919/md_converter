@@ -61,13 +61,19 @@ class WorkerManager:
         manifest_store.update(batch_dir, converting)
         input_path = batch_dir / record.upload_path
         output_path = conversion_service.output_path(batch_dir, record)
+        options = manifest_store.read(batch_dir).options
 
         try:
             result = await asyncio.wait_for(
-                conversion_service.convert(record, input_path),
+                conversion_service.convert(record, input_path, output_path, options),
                 timeout=settings.file_conversion_timeout_seconds,
             )
-            asset_markdown, asset_warning = conversion_service.extract_embedded_assets(record, input_path, output_path)
+            asset_markdown, asset_warning = conversion_service.extract_embedded_assets(
+                record,
+                input_path,
+                output_path,
+                options,
+            )
             if asset_markdown:
                 result.markdown = f"{result.markdown.rstrip()}\n{asset_markdown}"
             if asset_warning:

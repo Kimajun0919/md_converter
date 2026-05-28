@@ -4,12 +4,13 @@ import html
 import json
 import os
 import re
+import shutil
 import subprocess
 import zipfile
 from pathlib import Path
 
 from .config import settings
-from .models import FileRecord
+from .models import ConversionOptions, FileRecord
 from .utils import IMAGE_EXTENSIONS, output_relative_path, utc_now
 
 
@@ -28,10 +29,19 @@ class ConversionResult:
 
 
 class ConversionService:
-    async def convert(self, record: FileRecord, input_path: Path) -> ConversionResult:
+    async def convert(
+        self,
+        record: FileRecord,
+        input_path: Path,
+        output_path: Path | None = None,
+        options: ConversionOptions | None = None,
+    ) -> ConversionResult:
+        options = options or ConversionOptions()
         ext = record.extension.lower()
-        if ext in IMAGE_EXTENSIONS and not settings.enable_ocr:
-            raise ValueError("Image conversion requires OCR, but OCR is currently disabled.")
+        if ext in IMAGE_EXTENSIONS:
+            if not output_path:
+                raise ValueError("Image conversion requires an output path.")
+            return self._image_to_markdown(record, input_path, output_path, options)
         if ext == ".md":
             return ConversionResult(input_path.read_text(encoding="utf-8", errors="replace"), "passthrough")
         if ext == ".txt":
@@ -55,7 +65,7 @@ class ConversionService:
                 warning="Text extraction was unavailable; embedded images were preserved when possible.",
             )
 
-        if settings.enable_pandoc_fallback and ext in {".docx", ".html", ".htm"}:
+        if options.enable_pandoc_fallback and ext in {".docx", ".html", ".htm"}:
             result = await self._pandoc(input_path)
             if result:
                 return result
@@ -68,11 +78,18 @@ class ConversionService:
     def asset_dir(self, output_path: Path) -> Path:
         return output_path.with_name(f"{output_path.stem}_assets")
 
-    def extract_embedded_assets(self, record: FileRecord, input_path: Path, output_path: Path) -> tuple[str, str | None]:
+    def extract_embedded_assets(
+        self,
+        record: FileRecord,
+        input_path: Path,
+        output_path: Path,
+        options: ConversionOptions | None = None,
+    ) -> tuple[str, str | None]:
+        options = options or ConversionOptions()
         if record.extension == ".pptx":
-            return self._extract_pptx_assets(input_path, output_path)
+            return self._extract_pptx_assets(input_path, output_path, options)
         if record.extension == ".pdf":
-            return self._extract_pdf_assets(input_path, output_path)
+            return self._extract_pdf_assets(input_path, output_path, options)
         return "", None
 
     def with_frontmatter(self, record: FileRecord, result: ConversionResult) -> str:
@@ -172,9 +189,15 @@ class ConversionService:
         value = re.sub(r"\n{4,}", "\n\n\n", value)
         return value.strip() or "_No textual content was extracted._"
 
-    def _extract_pptx_assets(self, input_path: Path, output_path: Path) -> tuple[str, str | None]:
+    def _extract_pptx_assets(
+        self,
+        input_path: Path,
+        output_path: Path,
+        options: ConversionOptions,
+    ) -> tuple[str, str | None]:
         asset_dir = self.asset_dir(output_path)
         links: list[str] = []
+        ocr_warnings: list[str] = []
         try:
             with zipfile.ZipFile(input_path) as archive:
                 media_files = [
@@ -190,8 +213,8 @@ class ConversionService:
                     asset_dir.mkdir(parents=True, exist_ok=True)
                     target = asset_dir / f"ppt-image-{index:03d}{extension}"
                     with archive.open(info) as source, target.open("wb") as dest:
-                        dest.write(source.read())
-                    links.append(self._markdown_image_link(output_path, target, f"PPT image {index}"))
+                        shutil.copyfileobj(source, dest)
+                    links.append(self._asset_markdown(output_path, target, f"PPT image {index}", ocr_warnings, options))
         except zipfile.BadZipFile:
             return "", "Embedded images could not be extracted because the PPTX archive is invalid."
         except Exception:
@@ -199,9 +222,14 @@ class ConversionService:
 
         if not links:
             return "", None
-        return "\n\n## Extracted Images\n\n" + "\n\n".join(links), None
+        return "\n\n## Extracted Images\n\n" + "\n\n".join(links), " ".join(ocr_warnings) or None
 
-    def _extract_pdf_assets(self, input_path: Path, output_path: Path) -> tuple[str, str | None]:
+    def _extract_pdf_assets(
+        self,
+        input_path: Path,
+        output_path: Path,
+        options: ConversionOptions,
+    ) -> tuple[str, str | None]:
         try:
             import fitz
         except Exception:
@@ -209,6 +237,7 @@ class ConversionService:
 
         asset_dir = self.asset_dir(output_path)
         links: list[str] = []
+        ocr_warnings: list[str] = []
         seen_xrefs: set[int] = set()
         try:
             document = fitz.open(input_path)
@@ -228,10 +257,12 @@ class ConversionService:
                     target = asset_dir / f"page-{page_index + 1:03d}-image-{image_index:03d}{extension}"
                     target.write_bytes(image_bytes)
                     links.append(
-                        self._markdown_image_link(
+                        self._asset_markdown(
                             output_path,
                             target,
                             f"PDF page {page_index + 1} image {image_index}",
+                            ocr_warnings,
+                            options,
                         )
                     )
         except Exception:
@@ -239,11 +270,74 @@ class ConversionService:
 
         if not links:
             return "", None
-        return "\n\n## Extracted Images\n\n" + "\n\n".join(links), None
+        return "\n\n## Extracted Images\n\n" + "\n\n".join(links), " ".join(ocr_warnings) or None
 
     def _markdown_image_link(self, output_path: Path, asset_path: Path, alt: str) -> str:
         relative = os.path.relpath(asset_path, output_path.parent).replace("\\", "/")
         return f"![{alt}]({relative})"
+
+    def _image_to_markdown(
+        self,
+        record: FileRecord,
+        input_path: Path,
+        output_path: Path,
+        options: ConversionOptions,
+    ) -> ConversionResult:
+        if not options.enable_ocr:
+            raise ValueError("Image conversion requires OCR, but OCR is currently disabled.")
+
+        asset_dir = self.asset_dir(output_path)
+        asset_dir.mkdir(parents=True, exist_ok=True)
+        target = asset_dir / record.safe_name
+        shutil.copyfile(input_path, target)
+        link = self._markdown_image_link(output_path, target, record.original_name)
+        text = self._ocr_image(target, options)
+        markdown = f"{link}\n\n**OCR Text**\n\n{text}"
+        return ConversionResult(markdown, "tesseract-ocr")
+
+    def _asset_markdown(
+        self,
+        output_path: Path,
+        asset_path: Path,
+        alt: str,
+        warnings: list[str],
+        options: ConversionOptions,
+    ) -> str:
+        link = self._markdown_image_link(output_path, asset_path, alt)
+        if not options.enable_ocr:
+            return link
+
+        try:
+            text = self._ocr_image(asset_path, options)
+        except ValueError as exc:
+            warnings.append(str(exc))
+            return f"{link}\n\n> OCR warning: {exc}"
+
+        if not text:
+            return f"{link}\n\n_OCR did not detect readable text in this image._"
+
+        return f"{link}\n\n**OCR Text**\n\n{text}"
+
+    def _ocr_image(self, path: Path, options: ConversionOptions) -> str:
+        try:
+            from PIL import Image
+            import pytesseract
+            from pytesseract import TesseractNotFoundError
+        except Exception as exc:
+            raise ValueError("OCR dependencies are not installed. Install Pillow and pytesseract.") from exc
+
+        if settings.tesseract_cmd:
+            pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd
+
+        try:
+            with Image.open(path) as image:
+                text = pytesseract.image_to_string(image, lang=options.ocr_languages)
+        except TesseractNotFoundError as exc:
+            raise ValueError("Tesseract OCR is not installed or TESSERACT_CMD is not configured.") from exc
+        except Exception as exc:
+            raise ValueError("OCR failed for this image.") from exc
+
+        return self._normalize_markdown(text)
 
 
 conversion_service = ConversionService()

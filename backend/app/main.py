@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from .cleanup import cleanup_loop, cleanup_once
 from .config import settings
 from .manifest import manifest_store
-from .models import BatchManifest
+from .models import BatchManifest, ConversionOptions
 from .storage import storage_service
 from .utils import ensure_within, relative_storage_path
 from .worker import worker_manager
@@ -37,8 +37,13 @@ app.add_middleware(
 
 
 @app.post("/api/batches", response_model=BatchManifest)
-async def create_batch() -> BatchManifest:
-    return storage_service.create_batch()
+async def create_batch(options: ConversionOptions | None = None) -> BatchManifest:
+    return storage_service.create_batch(options)
+
+
+@app.patch("/api/batches/{batch_id}/options", response_model=BatchManifest)
+async def update_batch_options(batch_id: str, options: ConversionOptions) -> BatchManifest:
+    return storage_service.update_options(batch_id, options)
 
 
 @app.post("/api/batches/{batch_id}/files", response_model=BatchManifest)

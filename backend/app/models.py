@@ -49,6 +49,15 @@ class FileRecord(BaseModel):
     updated_at: str
 
 
+class ConversionOptions(BaseModel):
+    enable_ocr: bool = False
+    ocr_languages: str = "eng"
+    enable_pandoc_fallback: bool = False
+    enable_tika_fallback: bool = False
+    enable_libreoffice_fallback: bool = False
+    enable_zip_extraction: bool = True
+
+
 class BatchManifest(BaseModel):
     batch_id: str
     created_at: str
@@ -62,5 +71,5 @@ class BatchManifest(BaseModel):
     started_at: str | None = None
     completed_at: str | None = None
     cancellation_requested: bool = False
+    options: ConversionOptions = Field(default_factory=ConversionOptions)
     files: list[FileRecord] = Field(default_factory=list)
-

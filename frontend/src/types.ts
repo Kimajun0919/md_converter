@@ -41,6 +41,15 @@ export interface FileRecord {
   updated_at: string;
 }
 
+export interface ConversionOptions {
+  enable_ocr: boolean;
+  ocr_languages: string;
+  enable_pandoc_fallback: boolean;
+  enable_tika_fallback: boolean;
+  enable_libreoffice_fallback: boolean;
+  enable_zip_extraction: boolean;
+}
+
 export interface BatchManifest {
   batch_id: string;
   created_at: string;
@@ -54,6 +63,7 @@ export interface BatchManifest {
   started_at: string | null;
   completed_at: string | null;
   cancellation_requested: boolean;
+  options: ConversionOptions;
   files: FileRecord[];
 }
 
@@ -67,4 +77,3 @@ export interface LocalUpload {
   status: FileStatus;
   error?: string;
 }
-

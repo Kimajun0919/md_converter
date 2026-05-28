@@ -7,12 +7,22 @@ import {
   getStatus,
   retryFailed,
   startConversion,
+  updateBatchOptions,
   uploadOneFile,
   zipDownloadUrl
 } from "./api";
-import type { BatchManifest, FileRecord, FileStatus, LocalUpload } from "./types";
+import type { BatchManifest, ConversionOptions, FileRecord, FileStatus, LocalUpload } from "./types";
 
 const terminalStatuses = new Set(["completed", "completed_with_errors", "failed", "cancelled"]);
+
+const defaultOptions: ConversionOptions = {
+  enable_ocr: false,
+  ocr_languages: "eng",
+  enable_pandoc_fallback: false,
+  enable_tika_fallback: false,
+  enable_libreoffice_fallback: false,
+  enable_zip_extraction: true
+};
 
 function relativePathFor(file: File): string {
   const withFolder = (file as File & { webkitRelativePath?: string }).webkitRelativePath;
@@ -43,6 +53,7 @@ export default function App() {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [options, setOptions] = useState<ConversionOptions>(defaultOptions);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -73,9 +84,22 @@ export default function App() {
 
   async function ensureBatch(): Promise<BatchManifest> {
     if (batch) return batch;
-    const created = await createBatch();
+    const created = await createBatch(options);
     setBatch(created);
+    setOptions(created.options);
     return created;
+  }
+
+  async function changeOptions(next: ConversionOptions) {
+    setOptions(next);
+    if (!batch) return;
+    try {
+      const updated = await updateBatchOptions(batch.batch_id, next);
+      setBatch(updated);
+      setOptions(updated.options);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Options could not be saved.");
+    }
   }
 
   async function uploadFiles(files: File[]) {
@@ -188,6 +212,82 @@ export default function App() {
               hidden
               onChange={(event) => uploadFiles(Array.from(event.target.files ?? []))}
             />
+          </label>
+        </div>
+      </section>
+
+      <section className="settings-panel">
+        <div className="settings-header">
+          <div>
+            <h2>Conversion settings</h2>
+            <p>These options are saved per batch and used by the backend during upload and conversion.</p>
+          </div>
+          <span className="settings-state">{batch ? "Saved to current batch" : "Applied when a batch is created"}</span>
+        </div>
+        <div className="settings-grid">
+          <label className="toggle-row">
+            <input
+              type="checkbox"
+              checked={options.enable_ocr}
+              onChange={(event) => changeOptions({ ...options, enable_ocr: event.target.checked })}
+            />
+            <span>
+              Enable OCR
+              <small>Required for standalone image conversion and image text inside PDF/PPTX.</small>
+            </span>
+          </label>
+          <label className="field-row">
+            <span>OCR languages</span>
+            <input
+              value={options.ocr_languages}
+              onChange={(event) => changeOptions({ ...options, ocr_languages: event.target.value })}
+              placeholder="eng or eng+kor"
+            />
+          </label>
+          <label className="toggle-row">
+            <input
+              type="checkbox"
+              checked={options.enable_zip_extraction}
+              disabled={!!batch && batch.files.length > 0}
+              onChange={(event) => changeOptions({ ...options, enable_zip_extraction: event.target.checked })}
+            />
+            <span>
+              Extract ZIP uploads
+              <small>Applies when ZIP files are uploaded. Lock this before uploading ZIPs.</small>
+            </span>
+          </label>
+          <label className="toggle-row">
+            <input
+              type="checkbox"
+              checked={options.enable_pandoc_fallback}
+              onChange={(event) => changeOptions({ ...options, enable_pandoc_fallback: event.target.checked })}
+            />
+            <span>
+              Pandoc fallback
+              <small>Used only if Pandoc is installed on the backend.</small>
+            </span>
+          </label>
+          <label className="toggle-row">
+            <input
+              type="checkbox"
+              checked={options.enable_tika_fallback}
+              onChange={(event) => changeOptions({ ...options, enable_tika_fallback: event.target.checked })}
+            />
+            <span>
+              Tika fallback
+              <small>Stored for future backend integration.</small>
+            </span>
+          </label>
+          <label className="toggle-row">
+            <input
+              type="checkbox"
+              checked={options.enable_libreoffice_fallback}
+              onChange={(event) => changeOptions({ ...options, enable_libreoffice_fallback: event.target.checked })}
+            />
+            <span>
+              LibreOffice fallback
+              <small>Stored for future backend integration.</small>
+            </span>
           </label>
         </div>
       </section>
@@ -326,4 +426,3 @@ function Progress({ value, label }: { value: number; label: string }) {
     </div>
   );
 }
-

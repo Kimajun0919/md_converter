@@ -100,6 +100,8 @@ def output_relative_path(input_relative_path: str) -> str:
 def safe_error_message(exc: Exception) -> str:
     if isinstance(exc, HTTPException):
         return str(exc.detail)
+    if isinstance(exc, ValueError):
+        return str(exc)
     return "The file could not be converted. Check the source format or server converter configuration."
 
 

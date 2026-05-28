@@ -1,4 +1,4 @@
-import type { BatchManifest } from "./types";
+import type { BatchManifest, ConversionOptions } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
@@ -17,8 +17,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function createBatch(): Promise<BatchManifest> {
-  return request<BatchManifest>("/api/batches", { method: "POST" });
+export function createBatch(options: ConversionOptions): Promise<BatchManifest> {
+  return request<BatchManifest>("/api/batches", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(options)
+  });
+}
+
+export function updateBatchOptions(batchId: string, options: ConversionOptions): Promise<BatchManifest> {
+  return request<BatchManifest>(`/api/batches/${batchId}/options`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(options)
+  });
 }
 
 export function getStatus(batchId: string): Promise<BatchManifest> {
@@ -83,4 +95,3 @@ export function fileDownloadUrl(batchId: string, fileId: string): string {
 export function zipDownloadUrl(batchId: string): string {
   return `${API_BASE}/api/batches/${batchId}/download`;
 }
-

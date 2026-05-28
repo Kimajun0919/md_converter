@@ -8,7 +8,7 @@ from fastapi import HTTPException, UploadFile
 
 from .config import settings
 from .manifest import manifest_store
-from .models import BatchManifest, FileRecord
+from .models import BatchManifest, ConversionOptions, FileRecord
 from .utils import (
     DANGEROUS_EXTENSIONS,
     SUPPORTED_EXTENSIONS,
@@ -30,14 +30,39 @@ class StorageService:
             raise HTTPException(status_code=404, detail="Batch not found.")
         return ensure_within(self.root, self.root / batch_id)
 
-    def create_batch(self) -> BatchManifest:
+    def default_options(self) -> ConversionOptions:
+        return ConversionOptions(
+            enable_ocr=settings.enable_ocr,
+            ocr_languages=settings.ocr_languages,
+            enable_pandoc_fallback=settings.enable_pandoc_fallback,
+            enable_tika_fallback=settings.enable_tika_fallback,
+            enable_libreoffice_fallback=settings.enable_libreoffice_fallback,
+            enable_zip_extraction=settings.enable_zip_extraction,
+        )
+
+    def create_batch(self, options: ConversionOptions | None = None) -> BatchManifest:
         batch_id = new_id("batch")
         batch_dir = self.batch_dir(batch_id)
         for name in ["uploads", "outputs", "logs", "downloads", "chunks"]:
             (batch_dir / name).mkdir(parents=True, exist_ok=True)
         now = utc_now()
-        manifest = BatchManifest(batch_id=batch_id, created_at=now, updated_at=now)
+        manifest = BatchManifest(
+            batch_id=batch_id,
+            created_at=now,
+            updated_at=now,
+            options=options or self.default_options(),
+        )
         return manifest_store.create(batch_dir, manifest)
+
+    def update_options(self, batch_id: str, options: ConversionOptions) -> BatchManifest:
+        batch_dir = self.batch_dir(batch_id)
+
+        def apply_options(manifest: BatchManifest) -> None:
+            if manifest.status in {"queued", "converting"}:
+                raise HTTPException(status_code=409, detail="Options cannot be changed while conversion is running.")
+            manifest.options = options
+
+        return manifest_store.update(batch_dir, apply_options)
 
     def get_manifest(self, batch_id: str) -> BatchManifest:
         batch_dir = self.batch_dir(batch_id)
@@ -90,7 +115,8 @@ class StorageService:
             )
             new_records.append(record)
 
-            if extension == ".zip" and settings.enable_zip_extraction:
+            manifest = manifest_store.read(batch_dir)
+            if extension == ".zip" and manifest.options.enable_zip_extraction:
                 new_records.extend(self.extract_zip(batch_dir, target, record))
 
         def add_records(manifest: BatchManifest) -> None:
@@ -152,7 +178,8 @@ class StorageService:
         )
 
         extracted = []
-        if record.extension == ".zip" and settings.enable_zip_extraction:
+        manifest = manifest_store.read(batch_dir)
+        if record.extension == ".zip" and manifest.options.enable_zip_extraction:
             extracted = self.extract_zip(batch_dir, final_path, record)
 
         def add(manifest: BatchManifest) -> None:
@@ -250,4 +277,3 @@ class StorageService:
 
 
 storage_service = StorageService(settings.upload_dir)
-
