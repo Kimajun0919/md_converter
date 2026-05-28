@@ -16,9 +16,10 @@ class Settings(BaseSettings):
     enable_zip_extraction: bool = True
     ocr_languages: str = "eng+kor"
     tesseract_cmd: str | None = None
+    tesseract_tessdata_dir: Path | None = None
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=(".env", "../.env"), env_file_encoding="utf-8", extra="ignore")
 
     @property
     def max_file_size_bytes(self) -> int:

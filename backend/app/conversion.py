@@ -333,9 +333,13 @@ class ConversionService:
         if settings.tesseract_cmd:
             pytesseract.pytesseract.tesseract_cmd = settings.tesseract_cmd
 
+        config = ""
+        if settings.tesseract_tessdata_dir:
+            config = f"--tessdata-dir {settings.tesseract_tessdata_dir}"
+
         try:
             with Image.open(path) as image:
-                text = pytesseract.image_to_string(image, lang=options.ocr_languages)
+                text = pytesseract.image_to_string(image, lang=options.ocr_languages, config=config)
         except TesseractNotFoundError as exc:
             raise ValueError("Tesseract OCR is not installed or TESSERACT_CMD is not configured.") from exc
         except Exception as exc:

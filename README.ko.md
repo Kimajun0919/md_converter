@@ -50,9 +50,12 @@ Windows 로컬 실행 시 Tesseract를 설치하고 `.env`에 다음처럼 설�
 ENABLE_OCR=true
 OCR_LANGUAGES=eng+kor
 TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
+TESSERACT_TESSDATA_DIR=D:\test\md_converter\.ocr\tessdata
 ```
 
 영어만 사용할 경우 사용자 페이지의 OCR 언어 설정에서 `eng`를 입력하면 됩니다.
+
+`C:\Program Files\Tesseract-OCR\tessdata`에 언어팩을 복사할 권한이 없으면 `.ocr/tessdata` 같은 앱 전용 폴더에 `eng.traineddata`, `kor.traineddata`를 두고 `TESSERACT_TESSDATA_DIR`로 지정하면 됩니다.
 
 ## 사용자 페이지 옵션
 

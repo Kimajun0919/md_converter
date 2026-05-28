@@ -29,6 +29,7 @@ For local OCR on Windows, install Tesseract and set these values in `.env`:
 ENABLE_OCR=true
 OCR_LANGUAGES=eng+kor
 TESSERACT_CMD=C:\Program Files\Tesseract-OCR\tesseract.exe
+TESSERACT_TESSDATA_DIR=D:\test\md_converter\.ocr\tessdata
 ```
 
 For English-only OCR, use:
@@ -36,6 +37,8 @@ For English-only OCR, use:
 ```env
 OCR_LANGUAGES=eng
 ```
+
+When Windows blocks writes to `C:\Program Files\Tesseract-OCR\tessdata`, place `eng.traineddata` and `kor.traineddata` in an app-local folder such as `.ocr/tessdata` and point `TESSERACT_TESSDATA_DIR` to that folder.
 
 The Docker image installs English and Korean Tesseract language packs.
 

@@ -6,10 +6,10 @@ __pycache__/
 .mypy_cache/
 .venv/
 venv/
+.ocr/
 node_modules/
 dist/
 storage/batches/*
 !storage/batches/.gitkeep
 backend/storage/
 frontend/.vite/
-
