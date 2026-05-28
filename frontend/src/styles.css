@@ -1,0 +1,283 @@
+:root {
+  color: #172026;
+  background: #f5f7f9;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 16px;
+  letter-spacing: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+.button {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #cbd5df;
+  border-radius: 6px;
+  color: #172026;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 650;
+  gap: 0.35rem;
+  min-height: 2.4rem;
+  padding: 0.55rem 0.85rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+button:hover:not(:disabled),
+.button:hover:not(.disabled) {
+  border-color: #64748b;
+}
+
+button:disabled,
+.button.disabled {
+  color: #94a3b8;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.button.primary {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ffffff;
+}
+
+.app-shell {
+  margin: 0 auto;
+  max-width: 1440px;
+  padding: 1.5rem;
+}
+
+.topbar {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 1.05rem;
+  margin-bottom: 0.45rem;
+}
+
+p {
+  color: #526170;
+  line-height: 1.5;
+  margin-top: 0.25rem;
+}
+
+.batch-pill {
+  background: #e6eef5;
+  border: 1px solid #cbd5df;
+  border-radius: 999px;
+  color: #334155;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.78rem;
+  padding: 0.45rem 0.75rem;
+}
+
+.upload-zone {
+  align-items: center;
+  background: #ffffff;
+  border: 1px dashed #94a3b8;
+  border-radius: 8px;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  min-height: 9.5rem;
+  padding: 1.25rem;
+}
+
+.upload-zone.dragging {
+  background: #ecfdf5;
+  border-color: #0f766e;
+}
+
+.upload-actions,
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.controls {
+  margin-bottom: 1rem;
+}
+
+.message {
+  background: #fff7ed;
+  border: 1px solid #fdba74;
+  border-radius: 6px;
+  color: #9a3412;
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.9rem;
+}
+
+.summary-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin-bottom: 1rem;
+}
+
+.summary-item {
+  background: #ffffff;
+  border: 1px solid #d8e0e8;
+  border-radius: 8px;
+  padding: 0.8rem;
+}
+
+.summary-item span {
+  color: #64748b;
+  display: block;
+  font-size: 0.78rem;
+  margin-bottom: 0.2rem;
+}
+
+.summary-item strong {
+  font-size: 1.25rem;
+}
+
+.table-wrap {
+  background: #ffffff;
+  border: 1px solid #d8e0e8;
+  border-radius: 8px;
+  overflow: auto;
+}
+
+table {
+  border-collapse: collapse;
+  min-width: 1040px;
+  width: 100%;
+}
+
+th,
+td {
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.86rem;
+  padding: 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #eef3f7;
+  color: #475569;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+}
+
+.empty {
+  color: #64748b;
+  padding: 2rem;
+  text-align: center;
+}
+
+.status {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.24rem 0.55rem;
+  text-transform: capitalize;
+}
+
+.status-uploaded,
+.status-queued,
+.status-waiting {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.status-uploading,
+.status-converting {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-failed,
+.status-skipped,
+.status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.progress-cell {
+  min-width: 150px;
+}
+
+.progress-track {
+  background: #e2e8f0;
+  border-radius: 999px;
+  height: 0.45rem;
+  overflow: hidden;
+  width: 100%;
+}
+
+.progress-fill {
+  background: #2563eb;
+  height: 100%;
+  transition: width 160ms ease;
+}
+
+.progress-cell span {
+  color: #64748b;
+  display: block;
+  font-size: 0.74rem;
+  margin-top: 0.25rem;
+}
+
+.error-cell {
+  color: #9a3412;
+  max-width: 300px;
+}
+
+.download-link {
+  color: #0f766e;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    padding: 1rem;
+  }
+
+  .topbar,
+  .upload-zone {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
